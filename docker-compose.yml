@@ -1,0 +1,61 @@
+version: '3.4'
+
+services:
+
+  mysql:
+    image: mysql:5.7
+    volumes:
+      - /var/lib/mysql
+      - ./dbinit/:/docker-entrypoint-initdb.d/
+    environment:
+      MYSQL_ROOT_PASSWORD: secret-root
+      MYSQL_DATABASE: directus
+      MYSQL_USER: directus
+      MYSQL_PASSWORD: secret-directus
+
+  directus:
+    build: .
+    depends_on:
+      - mysql
+      - keycloak
+    ports:
+      - "8081:80"
+    environment:
+      DIRECTUS_APP_ENV: "production"
+      DIRECTUS_AUTH_PUBLICKEY: replaceme1
+      DIRECTUS_AUTH_SECRETKEY: replaceme2
+      DIRECTUS_DATABASE_HOST: mysql
+      DIRECTUS_DATABASE_PORT: "3306"
+      DIRECTUS_DATABASE_NAME: directus
+      DIRECTUS_DATABASE_USERNAME: directus
+      DIRECTUS_DATABASE_PASSWORD: secret-directus
+      DIRECTUS_AUTH_SOCIALPROVIDERS_OKTA_CLIENTID: directus
+      DIRECTUS_AUTH_SOCIALPROVIDERS_OKTA_CLIENTSECRET: 04408637-93dd-486f-a557-4b34b1d558e7
+      DIRECTUS_AUTH_SOCIALPROVIDERS_OKTA_BASEURL: http://keycloak:8080/auth/realms/directus
+    volumes:
+      - /var/directus/public/uploads
+
+  keycloak:
+    image: jboss/keycloak:11.0.2
+    ports:
+      - 8080:8080
+    volumes:
+      - /opt/jboss/keycloak/standalone/data
+    environment:
+      KEYCLOAK_USER: admin
+      KEYCLOAK_PASSWORD: secret-admin
+      DB_VENDOR: h2
+
+  adminer:
+    image: michalhosna/adminer:4.7.7-en_v1
+    depends_on:
+      - mysql
+    ports:
+      - 8083:8080
+    environment:
+      ADMINER_DRIVER: server
+      ADMINER_SERVER: mysql
+      ADMINER_DB: directus
+      ADMINER_USERNAME: directus
+      ADMINER_PASSWORD: secret-directus
+      ADMINER_AUTOLOGIN: 1
